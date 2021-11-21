@@ -35,6 +35,7 @@ namespace Chiticariu_Ramona_Georgiana_Lab5
         CollectionViewSource customerVSource;
         CollectionViewSource inventoryVSource;
         CollectionViewSource customerOrdersVSource;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -43,18 +44,24 @@ namespace Chiticariu_Ramona_Georgiana_Lab5
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+
             customerVSource = ((System.Windows.Data.CollectionViewSource)(this.FindResource("customerViewSource")));
             customerVSource.Source = ctx.Customers.Local;
-            //customerOrdersVSource.Source = ctx.Orders.Local;
-
+            customerOrdersVSource = ((System.Windows.Data.CollectionViewSource)(this.FindResource("customerOrdersViewSource")));
+            // customerOrdersVSource.Source = ctx.Orders.Local;
             ctx.Customers.Load();
-            ctx.Orders.Load();
+            BindDataGrid();
+
+            inventoryVSource = ((System.Windows.Data.CollectionViewSource)(this.FindResource("inventoryViewSource")));
+            inventoryVSource.Source = ctx.Inventories.Local;
             ctx.Inventories.Load();
 
+
+            ctx.Orders.Load();
+            ctx.Inventories.Load();
             cmbCustomers.ItemsSource = ctx.Customers.Local;
             //cmbCustomers.DisplayMemberPath = "FirstName";
             cmbCustomers.SelectedValuePath = "CustId";
-
             cmbInventory.ItemsSource = ctx.Inventories.Local;
             //cmbInventory.DisplayMemberPath = "Make";
             cmbInventory.SelectedValuePath = "CarId";
@@ -65,27 +72,26 @@ namespace Chiticariu_Ramona_Georgiana_Lab5
             System.Windows.Data.CollectionViewSource inventoryViewSource = ((System.Windows.Data.CollectionViewSource)(this.FindResource("inventoryViewSource")));
             // Load data by setting the CollectionViewSource.Source property:
             // inventoryViewSource.Source = [generic data source]
-            customerOrdersVSource = ((System.Windows.Data.CollectionViewSource)(this.FindResource("customerOrdersViewSource")));
-
-
-
-            inventoryVSource = ((System.Windows.Data.CollectionViewSource)(this.FindResource("inventoryViewSource")));
-            inventoryVSource.Source = ctx.Inventories.Local;
-            ctx.Inventories.Load();
-            BindDataGrid();
         }
         private void btnAdd_Click(object sender, RoutedEventArgs e)
         {
             action = ActionState.New;
+            BindingOperations.ClearBinding(firstNameTextBox, TextBox.TextProperty);
+            BindingOperations.ClearBinding(lastNameTextBox, TextBox.TextProperty);
+            SetValidationBinding();
         }
         private void btnEdit_Click(object sender, RoutedEventArgs e)
         {
             action = ActionState.Edit;
+            BindingOperations.ClearBinding(firstNameTextBox, TextBox.TextProperty);
+            BindingOperations.ClearBinding(lastNameTextBox, TextBox.TextProperty);
+            SetValidationBinding();
         }
         private void btnDelete_Click(object sender, RoutedEventArgs e)
         {
             action = ActionState.Delete;
         }
+
         private void btnNext_Click(object sender, RoutedEventArgs e)
         {
             customerVSource.View.MoveCurrentToNext();
@@ -94,18 +100,20 @@ namespace Chiticariu_Ramona_Georgiana_Lab5
         {
             customerVSource.View.MoveCurrentToPrevious();
         }
-        private void btnNext1_Click(object sender, RoutedEventArgs e)
+        private void btnNext2_Click(object sender, RoutedEventArgs e)
         {
             inventoryVSource.View.MoveCurrentToNext();
         }
-        private void btnPrevious1_Click(object sender, RoutedEventArgs e)
+        private void btnPrevious2_Click(object sender, RoutedEventArgs e)
         {
             inventoryVSource.View.MoveCurrentToPrevious();
         }
+
         private void btnCancel_Click(object sender, RoutedEventArgs e)
         {
             ReInitialize();
         }
+
         private void btnSave_Click(object sender, RoutedEventArgs e)
         {
             TabItem ti = tabControl.SelectedItem as TabItem;
@@ -125,6 +133,38 @@ namespace Chiticariu_Ramona_Georgiana_Lab5
             ReInitialize();
         }
 
+
+        private void ReInitialize()
+        {
+
+            Panel panel = gbOperations.Content as Panel;
+            foreach (Button B in panel.Children.OfType<Button>())
+            {
+                B.IsEnabled = true;
+            }
+            gbActions.IsEnabled = false;
+        }
+
+        private void BindDataGrid()
+        {
+            var queryOrder = from ord in ctx.Orders
+                             join cust in ctx.Customers on ord.CustId equals
+                             cust.CustId
+                             join inv in ctx.Inventories on ord.CarId
+                 equals inv.CarId
+                             select new
+                             {
+                                 ord.OrderId,
+                                 ord.CarId,
+                                 ord.CustId,
+                                 cust.FirstName,
+                                 cust.LastName,
+                                 inv.Make,
+                                 inv.Color
+                             };
+            customerOrdersVSource.Source = queryOrder.ToList();
+        }
+
         private void gbOperations_Click(object sender, RoutedEventArgs e)
         {
             Button SelectedButton = (Button)e.OriginalSource;
@@ -137,17 +177,6 @@ namespace Chiticariu_Ramona_Georgiana_Lab5
             }
             gbActions.IsEnabled = true;
         }
-        private void ReInitialize()
-        {
-
-            Panel panel = gbOperations.Content as Panel;
-            foreach (Button B in panel.Children.OfType<Button>())
-            {
-                B.IsEnabled = true;
-            }
-            gbActions.IsEnabled = false;
-        }
-
         private void SaveCustomers()
         {
             Customer customer = null;
@@ -167,7 +196,7 @@ namespace Chiticariu_Ramona_Georgiana_Lab5
                     //salvam modificarile
                     ctx.SaveChanges();
                 }
-                //using System.Data;
+
                 catch (DataException ex)
                 {
                     MessageBox.Show(ex.Message);
@@ -206,7 +235,6 @@ namespace Chiticariu_Ramona_Georgiana_Lab5
 
         }
 
-
         private void SaveInventory()
         {
             Inventory inventory = null;
@@ -226,6 +254,7 @@ namespace Chiticariu_Ramona_Georgiana_Lab5
                     //salvam modificarile
                     ctx.SaveChanges();
                 }
+
                 catch (DataException ex)
                 {
                     MessageBox.Show(ex.Message);
@@ -263,6 +292,7 @@ namespace Chiticariu_Ramona_Georgiana_Lab5
             }
 
         }
+
         private void SaveOrders()
         {
             Order order = null;
@@ -291,7 +321,7 @@ namespace Chiticariu_Ramona_Georgiana_Lab5
                 }
             }
             else
-                 if (action == ActionState.Edit)
+                    if (action == ActionState.Edit)
             {
                 dynamic selectedOrder = ordersDataGrid.SelectedItem;
                 try
@@ -335,24 +365,27 @@ namespace Chiticariu_Ramona_Georgiana_Lab5
                 }
             }
         }
-        private void BindDataGrid()
+        private void SetValidationBinding()
         {
-            var queryOrder = from ord in ctx.Orders
-                             join cust in ctx.Customers on ord.CustId equals
-                             cust.CustId
-                             join inv in ctx.Inventories on ord.CarId
-                 equals inv.CarId
-                             select new
-                             {
-                                 ord.OrderId,
-                                 ord.CarId,
-                                 ord.CustId,
-                                 cust.FirstName,
-                                 cust.LastName,
-                                 inv.Make,
-                                 inv.Color
-                             };
-            customerOrdersVSource.Source = queryOrder.ToList();
+            Binding firstNameValidationBinding = new Binding();
+            firstNameValidationBinding.Source = customerVSource;
+            firstNameValidationBinding.Path = new PropertyPath("FirstName");
+            firstNameValidationBinding.NotifyOnValidationError = true;
+            firstNameValidationBinding.Mode = BindingMode.TwoWay;
+            firstNameValidationBinding.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
+            //string required
+            firstNameValidationBinding.ValidationRules.Add(new StringNotEmpty());
+            firstNameTextBox.SetBinding(TextBox.TextProperty, firstNameValidationBinding);
+            Binding lastNameValidationBinding = new Binding();
+            lastNameValidationBinding.Source = customerVSource;
+            lastNameValidationBinding.Path = new PropertyPath("LastName");
+            lastNameValidationBinding.NotifyOnValidationError = true;
+            lastNameValidationBinding.Mode = BindingMode.TwoWay;
+            lastNameValidationBinding.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
+            //string min length validator
+            lastNameValidationBinding.ValidationRules.Add(new StringMinLengthValidator());
+            lastNameTextBox.SetBinding(TextBox.TextProperty, lastNameValidationBinding); //setare binding nou
         }
+
     }
 }
